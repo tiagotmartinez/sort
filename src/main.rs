@@ -1,5 +1,10 @@
 use fastrand;
-use std::{collections::{HashMap, HashSet}, fmt::Debug, iter::repeat_with, time::Instant};
+use std::{
+    collections::{BTreeSet, HashMap},
+    fmt::Debug,
+    iter::repeat_with,
+    time::Instant,
+};
 
 use sort::*;
 
@@ -126,19 +131,11 @@ macro_rules! test_sorts {
 }
 
 fn tabulate(table: &HashMap<String, HashMap<String, f64>>) {
-    let sort_names: Vec<_> = table.keys().collect();
-    let max_sort_name = sort_names
-        .iter()
-        .map(|s| s.len())
-        .max()
-        .unwrap_or(0);
+    let sort_names: BTreeSet<_> = table.keys().collect();
+    let max_sort_name = sort_names.iter().map(|s| s.len()).max().unwrap_or(0);
 
-    let vec_names: HashSet<_> = table.iter().flat_map(|(_, v)| v.keys()).collect();
-    let max_vec_name = vec_names
-        .iter()
-        .map(|s| s.len())
-        .max()
-        .unwrap_or(0);
+    let vec_names: BTreeSet<_> = table.iter().flat_map(|(_, v)| v.keys()).collect();
+    let max_vec_name = vec_names.iter().map(|s| s.len()).max().unwrap_or(0);
 
     print!("{:>width$} |", "", width = max_sort_name);
     for vec_name in vec_names.iter() {
@@ -154,7 +151,6 @@ fn tabulate(table: &HashMap<String, HashMap<String, f64>>) {
         }
         println!();
     }
-
 }
 
 fn main() {
@@ -168,7 +164,9 @@ fn main() {
         quick_sort,
         quick_sort_3,
         merge_sort_top_down,
+        merge_sort_top_down_insert,
         merge_sort_bottom_up,
+        merge_sort_bottom_up_insert,
         native_sort,
         native_unstable_sort,
     );

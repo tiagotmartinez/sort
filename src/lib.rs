@@ -229,21 +229,25 @@ pub fn heap_sort<T: Ord>(v: &mut [T]) {
     }
 }
 
-fn merge<T: Ord + Clone>(w: &[T], half: usize, v: &mut [T]) {
+/// Merge `from[..half]` and `from[half..]` into `to[..from.len()]`.
+fn merge<T: Ord + Clone>(from: &[T], half: usize, to: &mut [T]) {
     let mut i = 0;
     let mut j = half;
-    for k in 0..v.len() {
-        if i < half && (j >= w.len() || w[i] <= w[j]) {
-            v[k] = w[i].clone();
+    for k in 0..from.len() {
+        if i < half && (j >= from.len() || from[i] <= from[j]) {
+            to[k] = from[i].clone();
             i += 1;
         } else {
-            v[k] = w[j].clone();
+            to[k] = from[j].clone();
             j += 1;
         }
     }
 }
 
+/// **Merge sort** by breaking the array in half, recursing, and
+/// following this way *top down*.
 pub fn merge_sort_top_down<T: Ord + Clone>(v: &mut [T]) {
+    // compute the recursive merge sort of `w` and store the result into `v`
     fn split_merge<T: Ord + Clone>(w: &mut [T], v: &mut [T]) {
         if w.len() > 1 {
             let half = w.len() / 2;
@@ -257,6 +261,26 @@ pub fn merge_sort_top_down<T: Ord + Clone>(v: &mut [T]) {
     split_merge(&mut w, v);
 }
 
+/// **Merge sort** top down, using insertion sort for small sub arrays.
+pub fn merge_sort_top_down_insert<T: Ord + Clone>(v: &mut [T]) {
+    fn split_merge<T: Ord + Clone>(w: &mut [T], v: &mut [T]) {
+        if w.len() <= 16 {
+            insertion_sort(v);
+        } else {
+            let half = w.len() / 2;
+            split_merge(&mut v[..half], &mut w[..half]);
+            split_merge(&mut v[half..], &mut w[half..]);
+            merge(w, half, v);
+        }
+    }
+
+    let mut w: Vec<_> = v.iter().cloned().collect();
+    split_merge(&mut w, v);
+}
+
+/// **Merge sort** by merging pairs, then four elements, so forth,
+/// doubling, going *bottom up* until finally both halves of the
+/// array are merged in the whole.
 pub fn merge_sort_bottom_up<T: Ord + Clone>(v: &mut [T]) {
     let mut w: Vec<_> = v.iter().cloned().collect();
 
@@ -265,8 +289,6 @@ pub fn merge_sort_bottom_up<T: Ord + Clone>(v: &mut [T]) {
 
     let mut width = 1;
     while width < n {
-        // for i in (0..n).skip(2 * width) {
-        // }
         let mut i = 0;
         while i < n {
             let end = (i + 2 * width).min(n);
@@ -282,6 +304,43 @@ pub fn merge_sort_bottom_up<T: Ord + Clone>(v: &mut [T]) {
         width *= 2;
     }
 
+    if !v_to_w {
+        v.clone_from_slice(&w);
+    }
+}
+
+pub fn merge_sort_bottom_up_insert<T: Ord + Clone>(v: &mut [T]) {
+    let mut w: Vec<_> = v.iter().cloned().collect();
+
+    let n = v.len();
+
+    // swap between v and w to avoid too much cloning
+    let mut v_to_w = true;
+
+    // the initial value defines the sizes of the initial insertion sort
+    let mut width = 8;
+
+    // a first round of insertion sort...
+    for i in (0..n).step_by(2 * width) {
+        let end = (i + 2 * width).min(n);
+        insertion_sort(&mut v[i..end]);
+    }
+
+    // ...then increasing merging groups, until all array is merge
+    while width < n {
+        for i in (0..n).step_by(2 * width) {
+            let end = (i + 2 * width).min(n);
+            if v_to_w {
+                merge(&v[i..end], width, &mut w[i..end]);
+            } else {
+                merge(&w[i..end], width, &mut v[i..end]);
+            }
+        }
+        v_to_w = !v_to_w;
+        width *= 2;
+    }
+
+    // last clone if final iteration left the sorted result in w
     if !v_to_w {
         v.clone_from_slice(&w);
     }
